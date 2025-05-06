@@ -1,0 +1,583 @@
+﻿@model Tuple<List<BookingManagement.Models.Booking>, List<BookingManagement.Models.Provider>, List<BookingManagement.Models.Availability>, int,
+    List<BookingManagement.Models.ChatMessage>,
+    int>
+
+@{
+    ViewData["Title"] = "Provider Dashboard";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky">
+                <h4 class="text-center text-primary mt-3">Provider Dashboard</h4>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="bookings-tab" data-bs-toggle="tab" href="#bookings">
+                            📅 Booking Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="services-tab" data-bs-toggle="tab" href="#services">
+                            🏷 Services Providing
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="availability-tab" data-bs-toggle="tab" href="#availability">
+                            ⏰ Set Availability
+                        </a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link" id="available-requests-tab" data-bs-toggle="tab" href="#available-requests">
+                            ✅ Available Requests
+                        </a>
+                    </li>                     
+                    <li class="nav-item">
+                        <a class="nav-link" id="Chats-tab" data-bs-toggle="tab" href="#Chats">
+                            💬 Chats
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="tab-content">
+                <!-- Booking Management -->
+                <div class="tab-pane fade show active" id="bookings">
+                    <h3 class="text-primary">📅 Booking Management</h3>
+                    @if (Model.Item1.Any())
+                    {
+                        <table class="table table-striped table-bordered mt-3">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Contact Number</th>
+                                    <th>Booking Details</th>
+                                    <th>Booking Date</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var booking in Model.Item1)
+                                {
+                                    <tr>
+                                        <td>@booking.User.FullName</td>
+                                        <td>@booking.User.Phone</td>
+                                        <td>@booking.Provider.Name</td>
+                                        <td>@booking.BookingDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>
+                                            <span class="badge @(booking.Status == "Confirmed" ? "bg-success" : booking.Status == "Pending" ? "bg-warning" : "bg-danger")">
+                                                @booking.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if (booking.Status == "Pending")
+                                            {
+                                                <a asp-action="ChangeStatus" asp-route-id="@booking.Id" asp-route-status="Confirmed" class="btn btn-success btn-sm">✔ Confirm</a>
+                                                <a asp-action="ChangeStatus" asp-route-id="@booking.Id" asp-route-status="Cancelled" class="btn btn-danger btn-sm">❌ Cancel</a>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info text-center mt-3">No bookings found.</div>
+                    }
+                </div>
+
+
+               
+
+                <!-- Services Providing -->
+                <div class="tab-pane fade" id="services">
+                    <h3 class="text-primary">🏷 Services Providing</h3>
+                    <table class="table table-striped table-bordered mt-3">
+                        <thead>
+                            <tr>
+                                <th>Service Name</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var service in Model.Item2)
+                            {
+                                <tr>
+                                    <td>@service.Name</td>
+                                    <td>@(service.Category != null ? service.Category.Name : "N/A")</td> <!-- Show Category Name -->
+                                    <td>
+                                        <span class="badge @(service.Status == "Active" ? "bg-success" : "bg-danger")">
+                                            @service.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a asp-action="EditService" asp-route-id="@service.Id" class="btn btn-warning btn-sm">✏ Edit</a>
+                                    </td>
+                                </tr>
+                            }
+
+                        </tbody>
+                    </table>
+                    <a asp-action="EditService" class="btn btn-primary mt-3">➕ Add New Service</a>
+                </div>
+
+                <!-- Set Availability -->
+                <div class="tab-pane fade" id="availability">
+                    <h3 class="text-primary">⏰ Set Availability</h3>
+                    <form asp-action="SetAvailability" method="post">
+                        <div class="row">
+                            <!-- Select Service -->
+                            <div class="col-md-4">
+                                <label class="form-label">Select Service</label>
+                                <select name="providerId" class="form-control" required>
+                                    @foreach (var service in Model.Item2)
+                                    {
+                                        <option value="@service.Id">@service.Name</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Select from Date -->
+                            <div class="col-md-4">
+                                <label class="form-label">Select From:</label>
+                                <input type="date" name="date" class="form-control" required>
+                            </div>              
+                            <!-- Select To Date -->
+                            <div class="col-md-4">
+                                <label class="form-label">Select To:</label>
+                                <input type="date" name="ToDate" class="form-control">
+                            </div>
+
+                            <!-- Available Slots -->
+                            <div class="col-md-4">
+                                <label class="form-label">Daily Booking Limits</label>
+                                <input type="number" name="availableSlots" class="form-control"  required>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <!-- Open Time -->
+                            <div class="col-md-3">
+                                <label class="form-label">🕒 Open Time</label>
+                                <input type="time" name="openTime" class="form-control">
+                            </div>
+
+                            <!-- Close Time -->
+                            <div class="col-md-3">
+                                <label class="form-label">🕰 Close Time</label>
+                                <input type="time" name="closeTime" class="form-control">
+                            </div>
+
+                            <!-- Is Closed Checkbox -->
+                            <div class="col-md-3">
+                                <label class="form-label">🚫 Closed for the Day</label>
+                                <input type="checkbox" name="isClosed" class="form-check-input">
+                            </div>
+
+                            <!-- Is Blocked Checkbox -->
+                            <div class="col-md-3">
+                                <label class="form-label">🔒 Block Date</label>
+                                <input type="checkbox" name="isBlocked" class="form-check-input">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success mt-3">✔ Save Availability</button>
+                    </form>
+
+
+                    @if (Model.Item3.Any())
+                    {
+                        <h5 class="mt-4">📆 Current Availability</h5>
+                        <table class="table table-striped table-bordered mt-3">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Date</th>
+                                    <th>Daily Booking Limits</th>
+                                    <th>Working Hours</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var availability in Model.Item3) // No need to filter again, it's already filtered in the controller
+                                {
+                                    var provider = Model.Item2.FirstOrDefault(p => p.Id == availability.ProviderId);
+                                    <tr>
+                                        <td>@(provider != null ? provider.Name : "Unknown")</td>
+                                        <td>@availability.Date.ToString("yyyy-MM-dd")</td>
+                                        <td>@availability.AvailableSlots</td>
+
+                                        <td>
+                                            @if (availability.IsClosed ?? false)
+                                            {
+                                                <span class="text-danger">🚫 Closed</span>
+                                            }
+                                            else if (availability.OpenTime != null && availability.CloseTime != null)
+                                            {
+                                                <span>🕒 @availability.OpenTime - @availability.CloseTime</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Not Set</span>
+                                            }
+                                        </td>
+
+                                        <td>
+                                            @if (availability.IsBlocked ?? false)
+                                            {
+                                                <span class="badge bg-warning">🔒 Blocked</span>
+                                            }
+                                            else if (availability.IsClosed ?? false)
+                                            {
+                                                <span class="badge bg-danger">🚫 Closed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">✅ Open</span>
+                                            }
+                                        </td>
+
+                                        <td>
+                                            <form asp-action="DeleteAvailability" method="post" onsubmit="return confirm('Are you sure?');">
+                                                <input type="hidden" name="availabilityId" value="@availability.Id" />
+                                                <button type="submit" class="btn btn-danger btn-sm">❌ Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info mt-3">No availability records found.</div>
+                    }
+
+
+
+
+                </div>
+
+
+
+                 <!-- Available Requests -->
+                <div class="tab-pane fade" id="available-requests">
+                    <h3 class="text-primary">✅ Available Requests</h3>
+                    <div class="alert alert-info">
+                        You have <strong>@Model.Item4</strong> available requests.
+                    </div>
+                    <h4 class="mt-4">📦 Buy More Requests</h4>
+                    <div class="row">
+                        @foreach (var package in new[] { (100, 200), (150, 300), (200, 400), (250, 500), (300, 600), (400, 800) })
+                        {
+                                <div class="col-md-4">
+                                    <div class="card text-center p-3 shadow-sm">
+                                        <h5 class="card-title">💰 $@package.Item1</h5>
+                                        <p class="card-text">📌 Get <strong>@package.Item2</strong> Requests</p>
+                                        <button class="btn btn-primary" onclick="buyPackage(@package.Item1, @package.Item2)">Buy Now</button>
+                                    </div>
+                                </div>
+                        }
+                    </div>
+
+
+                </div>
+
+
+                <!-- Chats Section -->
+                <div class="tab-pane fade" id="Chats">
+                    <div class="card shadow-lg p-4 mt-4">
+                        <h3 class="text-primary text-center">Your Chats</h3>
+
+                        @if (Model.Item5 != null && Model.Item5.Count > 0)
+                        {
+                            var providerUserId = Model.Item6;
+                            var groupedChats = Model.Item5
+                            .GroupBy(m => m.SenderId == providerUserId ? m.Receiver.Id : m.Sender.Id)
+                            .ToList();
+
+                            foreach (var group in groupedChats)
+                            {
+                                var firstMessage = group.First();
+                                var otherUser = firstMessage.SenderId == providerUserId ? firstMessage.Receiver : firstMessage.Sender;
+                                var serviceName = firstMessage.ServiceName;
+                                var chatId = otherUser.Id;
+
+                                <div class="mb-4">
+                                    <h5 class="text-primary">
+                                        <a class="text-decoration-none" data-bs-toggle="collapse" href="#chatCollapse-@providerUserId-@chatId">
+                                            Chat with @otherUser.FullName
+                                            @if (!string.IsNullOrEmpty(serviceName))
+                                            {
+                                                <span class="text-danger">for @serviceName</span>
+                                            }
+                                        </a>
+                                    </h5>
+
+                                    <div class="collapse" id="chatCollapse-@providerUserId-@chatId">
+                                        <div class="border rounded p-3 bg-light" id="chatBox-@providerUserId-@chatId"
+                                             style="max-height: 300px; overflow-y: auto;">
+                                            @foreach (var msg in group.OrderBy(m => m.SentAt))
+                                            {
+                                                <div class="mb-2 d-flex @(msg.SenderId == providerUserId ? "justify-content-end" : "justify-content-start")">
+                                                    <div class="p-2 rounded shadow-sm"
+                                                         style="max-width: 60%; background-color:@(msg.SenderId == providerUserId ? "#d1e7dd" : "#f8d7da");">
+                                                        <div class="fw-bold mb-1">
+                                                            @(msg.SenderId == providerUserId ? "You" : otherUser.FullName)
+                                                        </div>
+                                                        <div>@msg.Message</div>
+                                                        <div class="text-muted small mt-1 text-end">@msg.SentAt?.ToString("yyyy-MM-dd HH:mm")</div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <div class="input-group mt-2">
+                                            <input type="text" class="form-control" placeholder="Type a message..."
+                                                   id="messageInput-@providerUserId-@chatId" />
+                                            <button class="btn btn-primary"
+                                                    onclick="sendMessage(@providerUserId, @chatId, '@serviceName', @chatId)">
+                                                Send
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            }
+                        }
+                        else
+                        {
+                            <div class="alert alert-info text-center">No chat messages found.</div>
+                        }
+                    </div>
+                </div>
+             
+
+
+                @section Scripts {
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+                    <script>
+                        const connection = new signalR.HubConnectionBuilder()
+                            .withUrl("/chatHub")
+                            .build();
+
+                        connection.start().catch(err => console.error(err));
+
+                        function sendMessage(senderId, receiverId, serviceName, chatId) {
+                            const input = document.getElementById(`messageInput-${senderId}-${chatId}`);
+                            const message = input.value.trim();
+                            if (message === "") return;
+
+                            const chatMessage = {
+                                SenderId: senderId,
+                                ReceiverId: receiverId,
+                                ServiceName: serviceName,
+                                Message: message
+                            };
+
+                            // ✅ Real-time via SignalR
+                            connection.invoke("SendMessage", senderId, receiverId, message, serviceName)
+                                .catch(err => console.error(err));
+
+                            // ✅ Persist to the database via controller
+                            fetch('/Chat/SaveMessage', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(chatMessage)
+                            }).then(response => {
+                                if (!response.ok) {
+                                    console.error("Failed to save message.");
+                                }
+                            });
+
+                            input.value = "";
+                        }
+
+                        connection.on("ReceiveMessage", function (senderId, receiverId, message, time, serviceName) {
+                            const providerId = @ViewBag.ProviderId;
+                            const chatBoxes = document.querySelectorAll(`[id^="chatBox-${senderId}-"], [id^="chatBox-${receiverId}-"]`);
+
+                            chatBoxes.forEach(box => {
+                                let isSender = senderId === providerId;
+                                let msgBubble = document.createElement("div");
+                                msgBubble.className = `mb-2 d-flex ${isSender ? "justify-content-end" : "justify-content-start"}`;
+                                msgBubble.innerHTML = `
+                                            <div class="p-2 rounded shadow-sm" style="max-width: 60%; background-color: ${isSender ? "#d1e7dd" : "#f8d7da"};">
+                                                <div class="fw-bold mb-1">${isSender ? "You" : "Them"}</div>
+                                                <div>${message}</div>
+                                                <div class="text-muted small mt-1 text-end">${time}</div>
+                                            </div>`;
+                                box.appendChild(msgBubble);
+                                box.scrollTop = box.scrollHeight;
+                            });
+                        });
+                    </script>
+                }
+
+
+
+
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- PayPal Payment Modal -->
+<div class="modal fade" id="paypalModal" tabindex="-1" aria-labelledby="paypalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paypalModalLabel">Complete Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="paypal-button-container"></div>
+            </div>
+            <div class="modal-body">
+                <div id="paypal-button-container"></div>
+                <!-- <button id="payWithStripe" class="btn btn-dark mt-3">Pay with Stripe</button>-->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PayPal SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id=AbuHChTswWfZCNk8XrZT968IT7JcvpLCxGmRsqqfdbvwTgDsvklLi-2cwxmqz8YXfLfWlIxyEvTyTrUx&currency=USD"></script>
+
+
+            </div>
+
+
+
+        </main>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".buy-package").forEach(button => {
+            button.addEventListener("click", function () {
+                let price = this.getAttribute("data-price");
+                let requests = this.getAttribute("data-requests");
+                document.getElementById("selected-price").innerText = price;
+                document.getElementById("selected-requests").innerText = requests;
+                let paymentModal = new bootstrap.Modal(document.getElementById("paymentModal"));
+                paymentModal.show();
+            });
+        });
+    });
+</script>
+
+<!-- Bootstrap Tabs Activation -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let firstTab = new bootstrap.Tab(document.querySelector("#bookings-tab"));
+        firstTab.show();
+    });
+</script>
+
+
+
+<script>
+    let selectedAmount = 0;
+    let selectedRequests = 0;
+
+    function buyPackage(amount, requests) {
+        selectedAmount = amount;
+        selectedRequests = requests;
+        var modal = new bootstrap.Modal(document.getElementById('paypalModal'));
+        modal.show();
+
+        setTimeout(() => {
+            paypal.Buttons({
+                createOrder: function (data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: { value: selectedAmount }
+                        }]
+                    });
+                },
+                onApprove: function (data, actions) {
+                    return actions.order.capture().then(function (details) {
+                        alert('Payment Successful! Adding Requests...');
+                        updateRequests(selectedRequests, selectedAmount);
+                    });
+                },
+                onError: function (err) {
+                    alert("Payment failed. Try again.");
+                }
+            }).render('#paypal-button-container');
+        }, 500);
+    }
+
+    function updateRequests(requests,amount) {
+        fetch('/Provider/UpdateRequests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requests: requests, amount: amount })
+        }).then(response => response.json())
+            .then(data => alert(data.message));
+    }
+</script>
+
+
+
+
+
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("payWithStripe").addEventListener("click", function () {
+            console.log("Stripe button clicked!"); // Debugging step
+
+            // Example: Call your backend to create a Stripe Checkout Session
+            fetch('/Payment/CreateStripeSession', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    price: selectedAmount,   // Ensure `selectedAmount` is set
+                    requests: selectedRequests // Ensure `selectedRequests` is set
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Stripe Response:", data);
+                if (data.sessionUrl) {
+                    window.location.href = data.sessionUrl; // Redirect to Stripe Checkout
+                } else {
+                    alert("Error creating Stripe session.");
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        });
+    });
+
+    // Store the selected package before checkout
+    let selectedAmount = null;
+    let selectedRequests = null;
+
+    function buyPackage(amount, requests) {
+        selectedAmount = amount;
+        selectedRequests = requests;
+        console.log(`Selected package: $${amount} for ${requests} requests`);
+
+        // Open the payment modal
+        var myModal = new bootstrap.Modal(document.getElementById("paypalModal"));
+        myModal.show();
+    }
+</script>
+
+
+

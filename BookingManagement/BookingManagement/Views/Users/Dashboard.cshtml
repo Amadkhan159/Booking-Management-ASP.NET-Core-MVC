@@ -1,0 +1,294 @@
+﻿@model List<BookingManagement.Models.Booking>
+
+@{
+    ViewData["Title"] = "User Dashboard";
+    var userName = Context.Session.GetString("UserName");
+
+}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+<!-- Review Save Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewModalLabel">Give Your Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reviewForm">
+                    <input type="hidden" id="providerId" name="providerId">
+
+                    <!-- Star Rating -->
+                    <div class="mb-3 text-center">
+                        <label class="form-label">Rate the Provider</label>
+                        <div class="stars">
+                            <span class="star" data-value="1">&#9733;</span>
+                            <span class="star" data-value="2">&#9733;</span>
+                            <span class="star" data-value="3">&#9733;</span>
+                            <span class="star" data-value="4">&#9733;</span>
+                            <span class="star" data-value="5">&#9733;</span>
+                        </div>
+                        <input type="hidden" id="rating" value="0">
+
+                    </div>
+
+                    <!-- Review Text -->
+                    <div class="mb-3">
+                        <label for="reviewText" class="form-label">Your Review</label>
+                        <textarea class="form-control" id="reviewText" name="reviewText" rows="3" placeholder="Write your review..."></textarea>
+                    </div>
+
+                    <button type="button" class="btn btn-primary w-100" onclick="submitReview()">Submit Review</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<body>
+<div class="container mt-4">
+    <h1 class="text-center text-primary">Welcome, @userName!</h1>
+    <p class="text-center text-muted">Here you can view your booking history and manage your reservations.</p>
+
+    <div class="card shadow-lg p-4 mt-4">
+        <h2 class="text-center text-primary">Booking History</h2>
+
+        @if (Model != null && Model.Count > 0)
+        {
+            <table class="table table-hover table-bordered mt-4">
+                <thead class="thead-dark">
+                    <tr class="bg-secondary text-white">
+                        <th>Provider</th>
+                        <th>Booking Date</th>
+                        <th>Nights</th>
+                        <th>People</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                        <th>Review Section</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var booking in Model)
+                    {
+                        <tr>
+                            <td>@booking.Provider.Name</td>
+                            <td>@booking.BookingDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@booking.Nights</td>
+                            <td>@booking.People</td>
+                            <td>
+                                <span class="badge @(booking.Status == "Confirmed" ? "bg-success" : booking.Status == "Pending" ? "bg-warning" : "bg-danger")">
+                                    @booking.Status
+                                </span>
+                            </td>
+                                <td>@booking.Notes</td>
+                           <td>
+                            @if (booking.Status == "Confirmed")
+                            {
+                                <a href="javascript:void(0);" class="btn btn-link" onclick="openReviewModal(@booking.Provider.Id)">Give your Review</a>
+                            }
+                        </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="alert alert-info text-center mt-4">No bookings found.</div>
+        }
+    </div>
+        <div class="card shadow-lg p-4 mt-5">
+            <h2 class="text-center text-primary">Your Chats</h2>
+
+            @if (ViewBag.ChatMessages != null && ((List<BookingManagement.Models.ChatMessage>)ViewBag.ChatMessages).Count > 0)
+            {
+                var currentUserId = (int)ViewBag.CurrentUserId;
+                var groupedChats = ((List<BookingManagement.Models.ChatMessage>)ViewBag.ChatMessages)
+                .GroupBy(m => new
+                {
+                    UserId = m.SenderId == currentUserId ? m.Receiver.Id : m.Sender.Id,
+                    ServiceName = m.ServiceName
+                })
+                .ToList();
+
+                int collapseIndex = 0;
+                foreach (var group in groupedChats)
+                {
+                    var firstMessage = group.First();
+                    var otherUser = firstMessage.SenderId == currentUserId ? firstMessage.Receiver : firstMessage.Sender;
+                    var serviceName = firstMessage.ServiceName;
+                    var collapseId = $"collapseChat{collapseIndex++}";
+
+                    <div class="mb-4">
+                        <button class="btn btn-outline-primary w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId">
+                            Chat with @otherUser.FullName
+                            @if (!string.IsNullOrEmpty(serviceName))
+                            {
+                                <span class="text-danger">for @serviceName</span>
+                            }
+                        </button>
+
+                        <div id="@collapseId" class="collapse mt-2">
+                            <div class="border rounded p-3 bg-light" style="max-height: 300px; overflow-y: auto;" id="chatBox-@group.Key.UserId-@collapseIndex">
+                                @foreach (var msg in group.OrderBy(m => m.SentAt))
+                                {
+                                    <div class="mb-2 d-flex @(msg.SenderId == currentUserId ? "justify-content-end" : "justify-content-start")">
+                                        <div class="p-2 rounded shadow-sm"
+                                             style="max-width: 60%; background-color:@(msg.SenderId == currentUserId ? "#d1e7dd" : "#f8d7da");">
+                                            <div class="fw-bold mb-1">
+                                                @(msg.SenderId == currentUserId ? "You" : otherUser.FullName)
+                                            </div>
+                                            <div>@msg.Message</div>
+                                            <div class="text-muted small mt-1 text-end">@msg.SentAt?.ToString("yyyy-MM-dd HH:mm")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Message Input -->
+                            <div class="input-group mt-2">
+                                <input type="text" class="form-control" placeholder="Type your message..."
+                                       id="messageInput-@group.Key.UserId-@collapseIndex"
+                                       onkeydown="if(event.key === 'Enter') sendMessage(@currentUserId, @group.Key.UserId, '@serviceName', @collapseIndex)" />
+                                <button class="btn btn-success" onclick="sendMessage(@currentUserId, @group.Key.UserId, '@serviceName', @collapseIndex)">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info text-center mt-4">No chat messages found.</div>
+            }
+        </div>
+
+        @section Scripts {
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+            <script>
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/chatHub")
+                    .build();
+
+                connection.start().catch(err => console.error(err));
+
+                function sendMessage(senderId, receiverId, serviceName, chatId) {
+                    const input = document.getElementById(`messageInput-${receiverId}-${chatId}`);
+                    const message = input.value.trim();
+                    if (message === "") return;
+
+                    const chatMessage = {
+                        SenderId: senderId,
+                        ReceiverId: receiverId,
+                        ServiceName: serviceName,
+                        Message: message
+                    };
+
+                    // Send to SignalR first for real-time
+                    connection.invoke("SendMessage", senderId, receiverId, message, serviceName)
+                        .catch(err => console.error(err));
+
+                    // Send to the controller for saving
+                    fetch('/Chat/SaveMessage', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(chatMessage)
+                    }).then(response => {
+                        if (!response.ok) {
+                            console.error("Failed to save message.");
+                        }
+                    });
+
+                    input.value = "";
+                }
+
+                connection.on("ReceiveMessage", function (senderId, receiverId, message, time, serviceName) {
+                    const userId = @ViewBag.CurrentUserId;
+                    const chatBox = document.querySelectorAll(`[id^="chatBox-${senderId}-"], [id^="chatBox-${receiverId}-"]`);
+
+                    chatBox.forEach(box => {
+                        let isSender = senderId === userId;
+                        let msgBubble = document.createElement("div");
+                        msgBubble.className = `mb-2 d-flex ${isSender ? "justify-content-end" : "justify-content-start"}`;
+                        msgBubble.innerHTML = `
+                                    <div class="p-2 rounded shadow-sm" style="max-width: 60%; background-color: ${isSender ? "#d1e7dd" : "#f8d7da"};">
+                                        <div class="fw-bold mb-1">${isSender ? "You" : "Them"}</div>
+                                        <div>${message}</div>
+                                        <div class="text-muted small mt-1 text-end">${time}</div>
+                                    </div>`;
+                        box.appendChild(msgBubble);
+                        box.scrollTop = box.scrollHeight;
+                    });
+                });
+            </script>
+        }
+
+
+
+
+
+</div>
+</body>
+
+<script>
+    function openReviewModal(providerId) {
+        document.getElementById("providerId").value = providerId;
+        document.getElementById("rating").value = 0; // Reset rating
+        document.getElementById("reviewText").value = ""; // Clear review text
+
+        // Reset all stars to gray
+        document.querySelectorAll(".star").forEach(star => {
+            star.classList.remove("selected");
+            star.style.color = "gray";
+        });
+
+        var modal = new bootstrap.Modal(document.getElementById("reviewModal"));
+        modal.show();
+    }
+
+    // Handle Star Rating Selection
+    document.querySelectorAll(".star").forEach((star, index, stars) => {
+        star.addEventListener("click", function () {
+            let value = parseInt(this.getAttribute("data-value"));
+            document.getElementById("rating").value = value;
+
+            // Update star colors: Gold for selected, Gray for unselected
+            stars.forEach((s, i) => {
+                s.style.color = i < value ? "gold" : "gray";
+            });
+        });
+    });
+
+    function submitReview() {
+        let providerId = document.getElementById("providerId").value;
+        let rating = document.getElementById("rating").value;
+        let reviewText = document.getElementById("reviewText").value;
+
+        if (rating == 0) {
+            alert("Please select a rating.");
+            return;
+        }
+
+        fetch('/Home/SubmitReview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ providerId, rating, reviewText })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Review submitted successfully!");
+                    var modal = bootstrap.Modal.getInstance(document.getElementById("reviewModal"));
+                    modal.hide();
+                } else {
+                    alert("Failed to submit review. Only Register User Give Review.");
+                }
+            });
+    }
+
+    
+
+</script>

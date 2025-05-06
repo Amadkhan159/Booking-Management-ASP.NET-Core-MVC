@@ -1,0 +1,89 @@
+﻿@model BookingManagement.Models.Provider
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Add New Service" : "Edit Service";
+}
+
+<h2 class="text-center text-primary">@ViewData["Title"]</h2>
+
+<div class="card shadow-lg p-4 mt-3">
+    <form asp-action="SaveService" method="post" enctype="multipart/form-data">
+
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="UserId" value="@Context.Session.GetString("UserId")" />
+
+
+        <div class="mb-3">
+            <label class="form-label">Service Name</label>
+            <input asp-for="Name" class="form-control" required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Category</label>
+            <select asp-for="CategoryId" class="form-select" required>
+                <option value="">Select Category</option>
+                @if (ViewBag.Categories != null)
+                {
+                    @foreach (var category in ViewBag.Categories)
+                    {
+                        <option value="@category.Id" selected="@(category.Id == Model.CategoryId ? "selected" : null)">
+                            @category.Name
+                        </option>
+                    }
+                }
+            </select>
+
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Price</label>
+            <input asp-for="Price" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Address</label>
+            <input asp-for="Address" class="form-control" required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Booking Redirect to </label>
+            <input asp-for="Website" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Phone Number</label>
+            <input asp-for="Phone" class="form-control" required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Max Bookings Per Day</label>
+            <input asp-for="MaxBookingsPerDay" class="form-control" type="number" min="1" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Upload Service Image</label>
+            <input type="file" name="ImageFile" class="form-control" accept="image/*" />
+            @if (Model.Image != null)
+            {
+                <img src="data:image/png;base64,@Convert.ToBase64String(Model.Image)" class="img-thumbnail mt-2" width="100" />
+            }
+        </div>
+
+        <div class="mb-3 ">
+            <label class="form-label">Status</label>
+            <select asp-for="Status" class="form-control">
+                <option value="Active">Active</option>
+                <option value="Disabled">Disabled</option>
+            </select>
+           
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-success px-4">💾 Save</button>
+            <a asp-action="Dashboard" class="btn btn-secondary">🔙 Back</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,66 @@
+﻿@model List<BookingManagement.Models.Category>
+
+@{
+    ViewData["Title"] = "Explore Categories";
+}
+
+<link rel="stylesheet" href="~/css/custom.css" asp-append-version="true" />
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <img src="/images/Logo2.png" alt="Website Banner" class="full-width-image">
+</div>
+
+<!-- Categories Section -->
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Explore Categories 🔍</h2>
+
+    <div class="row">
+        @foreach (var category in Model)
+        {
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card shadow-sm border-0 rounded text-center">
+                    @if (category.Picture != null)
+                    {
+                        <img src="data:image/png;base64,@Convert.ToBase64String(category.Picture)"
+                             class="card-img-top rounded-top"
+                             alt="@category.Name">
+                    }
+                    else
+                    {
+                        <img src="/images/default-category.png"
+                             class="card-img-top rounded-top"
+                             alt="No Image">
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="@Url.Action("List", "Home", new { categoryId = category.Id })" class="text-decoration-none">
+                                @category.Name
+                            </a>
+                        </h5>
+
+                        <!-- <a href="@Url.Action("Index", "Home", new { categoryId = category.Id })"
+                           class="btn btn-primary btn-sm rounded-pill">
+                            View Services
+                        </a>-->
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .card-img-top {
+        height: 150px;
+        object-fit: cover;
+    }
+
+    .card {
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .card:hover {
+        transform: scale(1.05);
+    }
+</style>

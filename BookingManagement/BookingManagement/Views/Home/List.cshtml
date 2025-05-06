@@ -1,0 +1,237 @@
+﻿@model List<ProviderWithReviewsViewModel>
+
+@{
+    ViewData["Title"] = "List";
+}
+
+<link rel="stylesheet" href="~/css/custom.css" asp-append-version="true" />
+
+<!-- Reviews Modal -->
+<div class="modal fade" id="reviewsModal" tabindex="-1" aria-labelledby="reviewsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewsModalLabel">Customer Reviews</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul id="reviewsList" class="list-group">
+                    <li class="list-group-item text-center">Loading reviews...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Save Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewModalLabel">Give Your Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reviewForm">
+                    <input type="hidden" id="providerId" name="providerId">
+
+                    <!-- Star Rating -->
+                    <div class="mb-3 text-center">
+                        <label class="form-label">Rate the Provider</label>
+                        <div class="stars">
+                            <span class="star" data-value="1">&#9733;</span>
+                            <span class="star" data-value="2">&#9733;</span>
+                            <span class="star" data-value="3">&#9733;</span>
+                            <span class="star" data-value="4">&#9733;</span>
+                            <span class="star" data-value="5">&#9733;</span>
+                        </div>
+                        <input type="hidden" id="rating" value="0">
+
+                    </div>
+
+                    <!-- Review Text -->
+                    <div class="mb-3">
+                        <label for="reviewText" class="form-label">Your Review</label>
+                        <textarea class="form-control" id="reviewText" name="reviewText" rows="3" placeholder="Write your review..."></textarea>
+                    </div>
+
+                    <button type="button" class="btn btn-primary w-100" onclick="submitReview()">Submit Review</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<body>
+
+<div class="hero-section">
+    <img src="/images/Logo3.png" alt="Website Banner" class="full-width-image">
+</div>
+
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Available Services 💼</h2>
+    <div class="row">
+        @foreach (var provider in Model)
+        {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm border-0 rounded">
+                        @if (provider.Provider.Image != null)
+                        {
+                            <img src="data:image/png;base64,@Convert.ToBase64String(provider.Provider.Image)"
+                                 class="card-img-top rounded-top img-thumbnail img-clickable"
+                                 alt="Provider Image"
+                                 style="height: 200px; object-fit: cover; cursor: pointer;"
+                                 onclick="openImageModal(this.src)" />
+                        }
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">@provider.Provider.Name</h5>
+                            <p class="card-text text-muted"><i class="fas fa-map-marker-alt"></i> @provider.Provider.Address</p>
+                            <p class="card-text">@provider.Provider.Description</p>
+
+                            <a asp-controller="Home" asp-action="Reserve" asp-route-providerId="@provider.Provider.Id" class="btn btn-success mt-auto rounded-pill">Reserve</a>
+
+                            <div class="d-flex justify-content-between mt-3">
+                                <span class="text-muted">💶 @provider.Provider.Price EUR</span>
+                                <span class="text-warning">
+                                    @for (int i = 0; i < provider.LatestReview?.Rating; i++)
+                                    {
+                                        <span>⭐</span>
+                                    }
+                                </span>
+                            </div>
+
+                            @if (provider.LatestReview != null)
+                            {
+                                <p href="javascript:void(0);" onclick="loadReviews(@provider.Provider.Id)" class="text-muted mt-2">
+                                    "@provider.LatestReview.ReviewText" - @provider.LatestReview.UserName
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="text-muted mt-2">No reviews yet.</p>
+                            }
+
+                            <!-- <a href="javascript:void(0);" class="btn btn-link p-0 mt-2" onclick="openReviewModal(@provider.Provider.Id)">Give your Review</a>-->
+                        </div>
+                    </div>
+                </div>
+
+        }
+    </div>
+</div>
+
+    <div id="imageModal" class="modal fade" tabindex="-2" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <img id="modalImage" src="" class="img-fluid rounded" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+<script>
+    function openImageModal(src) {
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = src;
+        const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+        imageModal.show();
+    }
+</script>
+
+
+<script>
+    function loadReviews(providerId) {
+        // Clear existing reviews
+        document.getElementById("reviewsList").innerHTML = '<li class="list-group-item text-center">Loading reviews...</li>';
+
+        fetch(`/Home/GetReviews?providerId=${providerId}`)
+            .then(response => response.json())
+            .then(data => {
+                let reviewsList = document.getElementById("reviewsList");
+                reviewsList.innerHTML = ''; // Clear loading text
+
+                if (data.length === 0) {
+                    reviewsList.innerHTML = '<li class="list-group-item text-center">No reviews available.</li>';
+                } else {
+                    data.forEach(review => {
+                        let stars = '⭐'.repeat(review.rating); // Convert rating to stars
+                        let reviewItem = `
+                                <li class="list-group-item">
+                                    <strong>${review.userName}</strong> - ${stars}
+                                    <p>${review.reviewText}</p>
+                                </li>`;
+                        reviewsList.innerHTML += reviewItem;
+                    });
+                }
+            });
+
+        // Show modal
+        var modal = new bootstrap.Modal(document.getElementById("reviewsModal"));
+        modal.show();
+    }
+</script>
+
+<script>
+    function openReviewModal(providerId) {
+        document.getElementById("providerId").value = providerId;
+        document.getElementById("rating").value = 0; // Reset rating
+        document.getElementById("reviewText").value = ""; // Clear review text
+
+        // Reset all stars to gray
+        document.querySelectorAll(".star").forEach(star => {
+            star.classList.remove("selected");
+            star.style.color = "gray";
+        });
+
+        var modal = new bootstrap.Modal(document.getElementById("reviewModal"));
+        modal.show();
+    }
+
+    // Handle Star Rating Selection
+    document.querySelectorAll(".star").forEach((star, index, stars) => {
+        star.addEventListener("click", function () {
+            let value = parseInt(this.getAttribute("data-value"));
+            document.getElementById("rating").value = value;
+
+            // Update star colors: Gold for selected, Gray for unselected
+            stars.forEach((s, i) => {
+                s.style.color = i < value ? "gold" : "gray";
+            });
+        });
+    });
+
+    function submitReview() {
+        let providerId = document.getElementById("providerId").value;
+        let rating = document.getElementById("rating").value;
+        let reviewText = document.getElementById("reviewText").value;
+
+        if (rating == 0) {
+            alert("Please select a rating.");
+            return;
+        }
+
+        fetch('/Home/SubmitReview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ providerId, rating, reviewText })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Review submitted successfully!");
+                    var modal = bootstrap.Modal.getInstance(document.getElementById("reviewModal"));
+                    modal.hide();
+                } else {
+                    alert("Failed to submit review. Please try again.");
+                }
+            });
+    }
+</script>

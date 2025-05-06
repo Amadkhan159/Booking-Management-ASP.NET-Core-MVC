@@ -1,0 +1,165 @@
+﻿@model BookingManagement.ViewModels.AffiliateDashboardViewModel
+
+@{
+    ViewData["Title"] = "Affiliate Dashboard";
+}
+
+<h2 class="text-primary">💼 Affiliate Dashboard</h2>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar Navigation -->
+        <div class="col-md-3">
+            <div class="list-group">
+                <a href="#tab-balance" class="list-group-item list-group-item-action active" data-bs-toggle="tab">💰 Current Balance</a>
+                <a href="#tab-referrals" class="list-group-item list-group-item-action" data-bs-toggle="tab">👥 Referral Users</a>
+                <a href="#tab-payments" class="list-group-item list-group-item-action" data-bs-toggle="tab">💳 Payment History</a>
+                <a href="#tab-referral-code" class="list-group-item list-group-item-action" data-bs-toggle="tab">🔗 Referral Code</a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <div class="tab-content">
+                <!-- Current Balance Tab -->
+                <div class="tab-pane fade show active" id="tab-balance">
+                    <div class="card border-success shadow-sm">
+                        <div class="card-header bg-success text-white">💰 Current Balance</div>
+                        <div class="card-body">
+                            <h4 class="card-title">$@Model.UserCredit</h4>
+                            <p>Your current earnings from referrals.</p>
+                            <div id="paypal-button-container"></div>
+
+                            <!--<button class="btn btn-success">Withdraw via Stripe</button>-->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Referral Users Tab -->
+                <div class="tab-pane fade" id="tab-referrals">
+                    <div class="card border-primary shadow-sm">
+                        <div class="card-header bg-primary text-white">👥 Referral Users</div>
+                        <div class="card-body">
+                            @if (Model.ReferredUsers.Any())
+                            {
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Phone</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var user in Model.ReferredUsers)
+                                        {
+                                            <tr>
+                                                <td>@user.FullName</td>
+                                                <td>@(user.Phone ?? "N/A")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            else
+                            {
+                                <p class="text-danger">No referrals yet.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment History Tab -->
+                <div class="tab-pane fade" id="tab-payments">
+                    <div class="card border-info shadow-sm">
+                        <div class="card-header bg-info text-white">💳 Payment History</div>
+                        <div class="card-body">
+                            @if (Model.PaymentHistory.Any())
+                            {
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Full Name</th>
+                                            <th>Amount Paid</th>
+                                            <th>Your Earned</th>
+                                            
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var payment in Model.PaymentHistory)
+                                        {
+                                            <tr>
+                                                <td>@payment.FullName</td>
+                                                <td>$@payment.AmountPaid</td>
+                                                <td>$@(payment.AmountPaid * 0.10M)</td>
+                                                
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            else
+                            {
+                                <p class="text-danger">No payment history available.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Referral Code Tab -->
+                <div class="tab-pane fade" id="tab-referral-code">
+                    <div class="card border-warning shadow-sm">
+                        <div class="card-header bg-warning text-white">🔗 Referral Code</div>
+                        <div class="card-body">
+                            <h4 class="card-title">@Model.ReferralCode</h4>
+                            <p>Share this referral code to earn commissions.</p>
+                            <button class="btn btn-secondary" onclick="copyReferralCode()">Copy Code</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyReferralCode() {
+        var text = "@Model.ReferralCode";
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Referral code copied!");
+        });
+    }
+</script>
+
+<script src="https://www.paypal.com/sdk/js?client-id=AbuHChTswWfZCNk8XrZT968IT7JcvpLCxGmRsqqfdbvwTgDsvklLi-2cwxmqz8YXfLfWlIxyEvTyTrUx&currency=USD"></script>
+
+<script>
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            return fetch('/Affiliate/CreatePayPalPayout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            }).then(response => response.json())
+              .then(order => order.id);
+        },
+        onApprove: function(data, actions) {
+            return fetch('/Affiliate/CompletePayPalPayout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ orderId: data.orderID })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      alert("Withdrawal successful!");
+                      window.location.reload();
+                  } else {
+                      alert("Withdrawal failed. Please try again.");
+                  }
+              });
+        }
+    }).render('#paypal-button-container');
+</script>

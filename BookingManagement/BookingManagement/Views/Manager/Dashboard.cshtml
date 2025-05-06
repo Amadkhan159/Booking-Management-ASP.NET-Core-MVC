@@ -1,0 +1,329 @@
+﻿@model Tuple<List<BookingManagement.Models.Category>, List<BookingManagement.Models.User>>
+@using BookingManagement.Models
+@{
+    ViewData["Title"] = "Manager Dashboard";
+    var categories = Model.Item1;
+    var users = Model.Item2;
+}
+
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar shadow p-2">
+            <h4 class="fw-bold">Manager Panel</h4>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" onclick="showTab('categories')">📂 Manage Categories</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" onclick="showTab('users')">👤 Manage Users</a>
+                </li>
+                <!-- <li class="nav-item">
+                    <a class="nav-link text-muted" href="#">🛒 Manage Services</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-muted" href="#">💰 Manage Affiliates</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-muted" href="#">📅 Manage Bookings</a>
+                </li>-->
+            </ul>
+        </nav>
+
+
+        <!-- Main Content -->
+        <main class="col-md-9 col-lg-10 px-md-4">
+          <!-- Categories Tab -->
+          <div id="categories-tab">
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <h2>📂 Manage Categories</h2>
+                    <button class="btn btn-primary" onclick="openCategoryModal()">+ Add Category</button>
+                </div>
+
+            <!-- Category Table -->
+
+                <div class="table-responsive mt-3">
+                    <table class="table table-bordered">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Picture</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var category in categories)
+                            {
+                                <tr>
+                                    <td>@category.Id</td>
+                                    <td>@category.Name</td>
+                                    <td>
+                                        @if (category.Picture != null)
+                                        {
+                                            <img src="data:image/png;base64,@Convert.ToBase64String(category.Picture)"
+                                                 width="50" height="50" class="rounded">
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No Image</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-warning btn-sm"
+                                                onclick="editCategory(@category.Id, '@category.Name')">
+                                            ✏️ Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+
+
+          <div id="users-tab" style="display: none;">
+            <h2 class="mt-3">👤 Manage Users</h2>
+            <div class="table-responsive d-none d-md-block mt-3">
+                <table class="table table-bordered">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Password</th>
+                            <th>Phone</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in users)
+                        {
+                            <tr>
+                                <td>@user.FullName</td>
+                                <td>@user.Email</td>
+                                <td>********</td>
+                                <td>@user.Phone</td>
+                                <td>@user.Role</td>
+                                    <td>
+                                        <span class="badge @(user.Status == "Approved" ? "bg-success" : user.Status == "Pending" ? "bg-warning" : "bg-danger")">
+                                            @user.Status
+                                        </span>
+                                    </td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning" onclick="openEditUserModal(@user.Id)">Edit</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile-friendly list -->
+            <div class="d-md-none mt-3">
+                @foreach (var user in users)
+                {
+                    <div class="card mb-2 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">@user.FullName</h5>
+                            <p class="card-text"><strong>Email:</strong> @user.Email</p>
+                            <p class="card-text"><strong>Password:</strong> ********</p>
+                                <p class="card-text"><strong>Status:</strong> @user.Status</p>
+                            <button class="btn btn-warning btn-sm" onclick="openEditUserModal(@user.Id)">Edit</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+
+
+        </main>
+    </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="categoryModalLabel">Manage Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="categoryId">
+                <div class="mb-3">
+                    <label for="categoryName" class="form-label">Category Name</label>
+                    <input type="text" id="categoryName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="categoryImage" class="form-label">Upload Image</label>
+                    <input type="file" id="categoryImage" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="saveCategory()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editUserForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId" />
+                    <div class="mb-2">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="editFullName" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editEmail" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="editPhone" />
+                    </div>                    
+                    <div class="mb-2">
+                        <label class="form-label">Change Status</label>
+                        <select  class="form-control" id="editStatus" >
+                        <option value="" disabled selected>Select a status...</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Cancel">Cancel</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="editPassword" placeholder="Leave blank to keep current" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function showTab(tabId) {
+        document.getElementById("categories-tab").style.display = (tabId === "categories") ? "block" : "none";
+        document.getElementById("users-tab").style.display = (tabId === "users") ? "block" : "none";
+    }
+
+    // Optional: show categories tab by default
+    window.onload = function () {
+        showTab('categories');
+    };
+</script>
+
+<script>
+    function openCategoryModal() {
+        document.getElementById("categoryId").value = "";
+        document.getElementById("categoryName").value = "";
+        document.getElementById("categoryImage").value = "";
+        new bootstrap.Modal(document.getElementById("categoryModal")).show();
+    }
+
+    function editCategory(id, name) {
+        document.getElementById("categoryId").value = id;
+        document.getElementById("categoryName").value = name;
+        new bootstrap.Modal(document.getElementById("categoryModal")).show();
+    }
+
+    function saveCategory() {
+        let id = document.getElementById("categoryId").value;
+        let name = document.getElementById("categoryName").value;
+        let image = document.getElementById("categoryImage").files[0];
+
+        if (!name) {
+            alert("Category name is required.");
+            return;
+        }
+
+        let formData = new FormData();
+        formData.append("Id", id);
+        formData.append("Name", name);
+        if (image) formData.append("Picture", image);
+
+        fetch("/Manager/SaveCategory", {
+            method: "POST",
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Category saved successfully!");
+                    location.reload();
+                } else {
+                    alert("Error saving category.");
+                }
+            });
+    }
+
+</script>
+
+<script>
+    function openEditUserModal(userId) {
+        const user = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(users));
+
+        const selectedUser = user.find(u => u.Id === userId);
+        if (!selectedUser) return;
+
+        document.getElementById("editUserId").value = selectedUser.Id;
+        document.getElementById("editFullName").value = selectedUser.FullName;
+        document.getElementById("editEmail").value = selectedUser.Email;
+        document.getElementById("editPhone").value = selectedUser.Phone;
+        document.getElementById("editStatus").value = selectedUser.Status;
+        document.getElementById("editPassword").value = "";
+
+        new bootstrap.Modal(document.getElementById("editUserModal")).show();
+    }
+
+document.getElementById("editUserForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append("Id", document.getElementById("editUserId").value);  // User ID
+    formData.append("FullName", document.getElementById("editFullName").value);  // Full Name
+    formData.append("Email", document.getElementById("editEmail").value);  // Email
+    formData.append("Phone", document.getElementById("editPhone").value);  // Phone
+    formData.append("Status", document.getElementById("editStatus").value);  // Status
+    formData.append("PasswordHash", document.getElementById("editPassword").value || "");  // Password, default to empty string if not provided
+
+    fetch("/Manager/UpdateUser", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("User updated!");
+            location.reload();
+        } else {
+            const errorMessage = data.error || "Failed to update user.";  // Default error message
+            alert(errorMessage);
+        }
+    })
+    .catch(err => {
+        alert("An error occurred: " + err);
+    });
+});
+
+</script>
+
