@@ -1,0 +1,68 @@
+﻿
+
+
+
+/* Custom styles for modern look */
+body {
+    background-color: #f8f9fa;
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+    .card:hover {
+        transform: scale(1.05);
+    }
+
+.list-group-item {
+    transition: background-color 0.2s;
+}
+
+    .list-group-item:hover {
+        background-color: #e9ecef;
+    }
+
+.container {
+    padding: 0; /* Remove default padding */
+}
+
+
+/* Full-width image with responsive height */
+.hero-section {
+    position: relative;
+    width: 100%;
+    height: 50vh; /* 50% of the viewport height */
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.full-width-image {
+    width: 100%;
+    height: 100%;
+    object-fit:fill; /* Ensures the image covers the container */
+}
+
+@media (max-width: 420px) {
+
+    .hero-section {
+        width:120vh;
+        height: 35vh; /* Reduce height even further on very small screens */
+    }
+    
+}
+
+.star {
+    font-size: 30px;
+    cursor: pointer;
+    color: gray; /* All stars start as gray */
+    transition: color 0.2s;
+}
+
+
+
+
